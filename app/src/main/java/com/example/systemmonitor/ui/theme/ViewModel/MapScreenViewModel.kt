@@ -28,7 +28,7 @@ class MapScreenViewModel @Inject constructor(
     }
 
     fun searchLocation(){
-        val query = _searchQuery.value.trim()
+        val query = _searchQuery.value
 
         if (query.isEmpty()){
             _searchState.value = Resource.Error("Please enter the location")
