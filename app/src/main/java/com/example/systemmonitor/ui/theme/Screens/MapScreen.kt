@@ -50,7 +50,6 @@ fun RapidMapScreen(
 
     var mapController by remember { mutableStateOf<MapLibreMap?>(null) }
 
-
     LaunchedEffect(searchState) {
         if (searchState is Resource.Success){
             val result = searchState.data
@@ -74,7 +73,6 @@ fun RapidMapScreen(
             }
         }
     }
-
 
     Scaffold (
         modifier = Modifier.fillMaxSize()
@@ -110,12 +108,10 @@ fun RapidMapScreen(
     }
 }
 
-
 @Composable
 fun MapLibreView(
     onMapReady: (MapLibreMap) -> Unit
 ){
-
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
@@ -152,12 +148,10 @@ fun MapLibreView(
         factory = {
             mapView.getMapAsync { map ->
               map.setStyle("https://api.maptiler.com/maps/streets/style.json?key=urVJndTUzEBx0xaseMA6")
-
                 map.uiSettings.isLogoEnabled = false
                 map.uiSettings.isAttributionEnabled = false // careful with this, usually you need to keep it for free plans
                 onMapReady(map)
             }
-
             mapView
         }
     )

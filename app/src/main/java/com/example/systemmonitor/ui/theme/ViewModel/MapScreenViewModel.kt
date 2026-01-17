@@ -17,16 +17,20 @@ class MapScreenViewModel @Inject constructor(
     private val repository: SearchRepository
 ) : ViewModel(){
 
+    // user enter location
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
+    // search state start from empty list then modity later itself.
     private val _searchState = MutableStateFlow<Resource<List<SearchResult>>>(Resource.Success(emptyList()))
     val searchState = _searchState.asStateFlow()
 
+    // change empty
     fun onSearchQueryChange(newQuery : String){
         _searchQuery.value = newQuery
     }
 
+    // deal with repo and pass to ui
     fun searchLocation(){
         val query = _searchQuery.value
 
@@ -34,6 +38,7 @@ class MapScreenViewModel @Inject constructor(
             _searchState.value = Resource.Error("Please enter the location")
             return
         }
+
         viewModelScope.launch {
             _searchState.value = Resource.Loading()
 
@@ -49,5 +54,6 @@ class MapScreenViewModel @Inject constructor(
             }
 
         }
+
     }
 }

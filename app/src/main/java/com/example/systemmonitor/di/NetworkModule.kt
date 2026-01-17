@@ -15,17 +15,19 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    // provideRetrofit
-    // provideNominatimApi
-    // https://nominatim.openstreetmap.org/
+    /**
+     * OKHttpClient use to ensure security we send agent here and say yes it's me not fake people
+     **/
+
 
     @Provides
     @Singleton
     fun provideOkhttpClient() : OkHttpClient{
         return OkHttpClient.Builder()
             .addInterceptor { chain ->
+                // What user want?
                 val originalRequest = chain.request()
-
+                // fine but i send my agent here this is not fake request it ensure our security
                 val newRequest = originalRequest.newBuilder()
                     .header("User-Agent","RapidLink-Student-Project")
                     .build()
@@ -33,7 +35,6 @@ object NetworkModule {
             }
             .build()
     }
-
 
     @Provides
     @Singleton
@@ -44,15 +45,12 @@ object NetworkModule {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
-
+    // This is normal coding for us retrofit not big deal
     @Provides
     @Singleton
     fun provideNominatimApi(retrofit: Retrofit) : NominatimApi{
         return retrofit.create(NominatimApi::class.java)
     }
-
-
-
 
 
 }

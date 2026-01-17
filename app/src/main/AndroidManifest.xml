@@ -2,8 +2,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Detects physical motion (walking, running, driving) -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
-    <uses-permission android:name="android.permission.Internet"/>
+    <!-- Access the internet -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Provides location (GPS) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Provides approximate location (required with Fine Location) -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Run active tasks in the background -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Permits the app to show notifications (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Specifically permits location tracking within a background service (Android 14+) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
     <application
         android:name=".MyApp"
@@ -27,6 +39,9 @@
             </intent-filter>
         </activity>
 
+        <service android:name=".service.TrackingService"
+            android:foregroundServiceType="location"
+            android:exported="false"/>
 
     </application>
 

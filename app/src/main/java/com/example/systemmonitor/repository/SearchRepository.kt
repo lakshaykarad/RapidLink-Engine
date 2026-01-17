@@ -6,8 +6,9 @@ import com.example.systemmonitor.data.SearchResult
 import javax.inject.Inject
 
 class SearchRepository @Inject constructor(
-    val api: NominatimApi
+    val api: NominatimApi  // our api
 ) {
+    // basic funcation with try and catch block
     suspend fun searchLocation(query: String) : Resource<List<SearchResult>>{
         return try {
             val response = api.search(query)
