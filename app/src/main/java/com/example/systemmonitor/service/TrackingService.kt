@@ -1,36 +1,96 @@
 package com.example.systemmonitor.service
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.work.Configuration
 import com.example.systemmonitor.MainActivity
 import com.example.systemmonitor.R
 
-class TrackingService : Service() {
+class TrackingService : Service(), LocationListener {
+
+    private lateinit var locationManager: LocationManager // Location Manager to manage location
 
     override fun onCreate() {
         super.onCreate()
+        locationManager  = getSystemService(Context.LOCATION_SERVICE) as LocationManager
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         intent?.let {
             when(it.action){
+                // for running our GPS we pass string that match with foreground service
                 ServiceConstants.ACTION_START_OR_RESUME_SERVICE -> {
                     startForegroundService()
+                    startLocationUpdates()
                 }
+                // this is for stop
                 ServiceConstants.ACTION_STOP_SERVICE ->{
                     stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopLocationUpdates()
                     stopSelf() // kill the service
                 }
             }
         }
         return START_STICKY
+    }
+    //
+    @SuppressLint("MissingPermission") // using it because we alrady did it in mainactivity
+    private fun startLocationUpdates(){ // updating the location state
+        try {
+            // GPS Provider work outdoor only and more accurate
+            locationManager.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                2000L,
+                2f,
+                this,
+            )
+            // work more perfectly inside indoor and less accurate.
+            locationManager.requestLocationUpdates(
+                LocationManager.NETWORK_PROVIDER,
+                2000L,
+                2f,
+                this
+            )
+            Log.d("TrackingService", "Started Location Updates")
+        }catch (e : Exception){
+            Log.d("TrackingService", "Error error location ${e.message}")
+        }
+    }
+
+    private fun stopLocationUpdates(){
+        locationManager.removeUpdates(this)
+    }
+
+    override fun onLocationChanged(location: Location) {
+        val lat = location.latitude
+        val lan = location.longitude
+
+        Log.d("TrackingService", "NEW LOCATION $lat, $lan")
+    }
+
+    override fun onProviderEnabled(provider: String) {
+        super.onProviderEnabled(provider)
+    }
+
+    override fun onProviderDisabled(provider: String) {
+        super.onProviderDisabled(provider)
+    }
+
+    override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
+        super.onStatusChanged(provider, status, extras)
     }
 
     private fun startForegroundService(){

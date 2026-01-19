@@ -18,7 +18,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Specifically permits location tracking within a background service (Android 14+) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
-
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH"/>
     <application
         android:name=".MyApp"
         android:allowBackup="true"
