@@ -3,7 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
 
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- Detects physical motion (walking, running, driving) -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
     <!-- Access the internet -->
@@ -18,7 +17,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Specifically permits location tracking within a background service (Android 14+) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH"/>
+
+
     <application
         android:name=".MyApp"
         android:allowBackup="true"
@@ -43,7 +43,7 @@
 
         <service
             android:name=".service.TrackingService"
-            android:foregroundServiceType="specialUse"
+            android:foregroundServiceType="location"
             android:exported="false">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"

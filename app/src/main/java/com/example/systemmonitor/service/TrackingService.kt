@@ -102,6 +102,13 @@ class TrackingService : Service(), LocationListener, SensorEventListener {
 
     @SuppressLint("MissingPermission") // using it because we alrady did it in mainactivity
     private fun startLocationUpdates(){ // updating the location state
+
+        if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            Log.e("TrackingService", "No Location Permission! stopping updates.")
+            stopSelf() // Stop the service to prevent crash
+            return
+        }
+
         try {
             // GPS Provider work outdoor only and more accurate
             locationManager.requestLocationUpdates(
