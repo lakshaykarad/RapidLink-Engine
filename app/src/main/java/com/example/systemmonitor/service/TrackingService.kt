@@ -7,6 +7,10 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -19,13 +23,27 @@ import androidx.work.Configuration
 import com.example.systemmonitor.MainActivity
 import com.example.systemmonitor.R
 
-class TrackingService : Service(), LocationListener {
+class TrackingService : Service(), LocationListener, SensorEventListener {
 
     private lateinit var locationManager: LocationManager // Location Manager to manage location
 
+    // Sensor Manager for Step Counter
+    private lateinit var sensorManager: SensorManager
+    private var stepSensor : Sensor? = null
+    private var initialStep = -1
+
     override fun onCreate() {
         super.onCreate()
+        // Location
         locationManager  = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        // Step Sensor
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+
+        if (stepSensor == null) {
+            Log.d("TrackingService","No Sensor Found on this device")
+        }
+
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -35,18 +53,53 @@ class TrackingService : Service(), LocationListener {
                 ServiceConstants.ACTION_START_OR_RESUME_SERVICE -> {
                     startForegroundService()
                     startLocationUpdates()
+                    startStepCounting()
                 }
                 // this is for stop
                 ServiceConstants.ACTION_STOP_SERVICE ->{
                     stopForeground(STOP_FOREGROUND_REMOVE)
                     stopLocationUpdates()
+                    stopStepCounting()
                     stopSelf() // kill the service
                 }
             }
         }
         return START_STICKY
     }
-    //
+
+    private fun startStepCounting(){
+        stepSensor?.let {
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+            Log.d("TrackingService", "Started Step Counting")
+        }
+    }
+
+    private fun stopStepCounting(){
+        stepSensor?.let {
+            sensorManager.unregisterListener(this)
+        }
+    }
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        event?.let {
+            if (it.sensor.type == Sensor.TYPE_STEP_COUNTER){
+                val totalStepSinceBoot = it.values[0].toInt()
+
+                if (initialStep == -1){
+                    initialStep = totalStepSinceBoot
+                }
+
+                val currentSessionSteps = totalStepSinceBoot - initialStep
+                Log.d("TrackingService","Step $currentSessionSteps")
+
+            }
+        }
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor?, p1: Int) {
+
+    }
+
     @SuppressLint("MissingPermission") // using it because we alrady did it in mainactivity
     private fun startLocationUpdates(){ // updating the location state
         try {
