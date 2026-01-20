@@ -11,7 +11,7 @@ interface LocationDao {
     suspend fun insertLocation(locationDao: LocationDao) : Long
 
     @Query("SELECT * FROM location_table ORDER BY timestamp ASC")
-    suspend fun getAllLocation(locationDao: LocationDao) : List<LocationEntity>
+    suspend fun getAllLocation(locationDao: LocationDao) : Flow<List<LocationEntity>>
 
     @Query("DELETE FROM location_table")
     suspend fun clearAllLocation()
