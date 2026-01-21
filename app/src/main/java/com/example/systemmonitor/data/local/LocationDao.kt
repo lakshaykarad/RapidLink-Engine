@@ -15,4 +15,5 @@ interface LocationDao {
 
     @Query("DELETE FROM location_table")
     suspend fun clearAllLocation()
+    
 }
