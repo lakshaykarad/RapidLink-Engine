@@ -22,11 +22,26 @@ import androidx.core.app.NotificationCompat
 import androidx.work.Configuration
 import com.example.systemmonitor.MainActivity
 import com.example.systemmonitor.R
+import com.example.systemmonitor.data.local.LocationDao
+import com.example.systemmonitor.data.local.LocationEntity
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class TrackingService : Service(), LocationListener, SensorEventListener {
+
+    @Inject
+    lateinit var locationDao: LocationDao
 
     private lateinit var locationManager: LocationManager // Location Manager to manage location
 
+    // Creating custom service so our app can work if one task faild
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     // Sensor Manager for Step Counter
     private lateinit var sensorManager: SensorManager
     private var stepSensor : Sensor? = null
@@ -100,7 +115,7 @@ class TrackingService : Service(), LocationListener, SensorEventListener {
 
     }
 
-    @SuppressLint("MissingPermission") // using it because we alrady did it in mainactivity
+    @SuppressLint("MissingPermission") // using it because we already did it in main-activity
     private fun startLocationUpdates(){ // updating the location state
 
         if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -137,6 +152,13 @@ class TrackingService : Service(), LocationListener, SensorEventListener {
     override fun onLocationChanged(location: Location) {
         val lat = location.latitude
         val lan = location.longitude
+        serviceScope.launch {
+            val entity = LocationEntity(
+                latitude = lat,
+                longitude = lan
+            )
+            locationDao.insertLocation(entity)
+        }
 
         Log.d("TrackingService", "NEW LOCATION $lat, $lan")
     }
@@ -165,7 +187,6 @@ class TrackingService : Service(), LocationListener, SensorEventListener {
             )
             notificationManager.createNotificationChannel(channel) // Create teh channel with the help of notification manager
         }
-
         // When user click on notification, come to application
         val intent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
@@ -192,5 +213,6 @@ class TrackingService : Service(), LocationListener, SensorEventListener {
 
     override fun onDestroy() {
         super.onDestroy()
+        serviceScope.cancel()
     }
 }
