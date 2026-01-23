@@ -4,17 +4,22 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.systemmonitor.common.Resource
 import com.example.systemmonitor.data.SearchResult
+import com.example.systemmonitor.data.local.LocationDao
 import com.example.systemmonitor.repository.SearchRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 import javax.inject.Inject
 
 @HiltViewModel
 class MapScreenViewModel @Inject constructor(
-    private val repository: SearchRepository
+    private val repository: SearchRepository,
+    private val locationDao: LocationDao
 ) : ViewModel(){
 
     // user enter location
@@ -24,6 +29,19 @@ class MapScreenViewModel @Inject constructor(
     // search state start from empty list then modity later itself.
     private val _searchState = MutableStateFlow<Resource<List<SearchResult>>>(Resource.Success(emptyList()))
     val searchState = _searchState.asStateFlow()
+
+    // Update the list automatically
+    val pathPoints = locationDao.getAllLocations().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+    // Clear Path
+    fun clearPath(){
+        viewModelScope.launch {
+            locationDao.clearAllLocations()
+        }
+    }
 
     // change empty
     fun onSearchQueryChange(newQuery : String){

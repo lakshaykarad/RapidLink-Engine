@@ -1,5 +1,6 @@
 package com.example.systemmonitor.ui.theme.Screens
 
+import android.R
 import android.os.Bundle
 import android.util.Log
 import androidx.compose.foundation.layout.Box
@@ -7,8 +8,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -34,27 +37,35 @@ import androidx.lifecycle.Lifecycling
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.systemmonitor.common.Resource
+import com.example.systemmonitor.data.local.LocationEntity
 import com.example.systemmonitor.ui.theme.ViewModel.MapScreenViewModel
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
+import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.Property
+import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.geojson.Point
 
 @Composable
 fun RapidMapScreen(
     viewModel: MapScreenViewModel = hiltViewModel()
 ){
-    val query by viewModel.searchQuery.collectAsStateWithLifecycle()
-    val searchState by viewModel.searchState.collectAsStateWithLifecycle()
-
+    val query by viewModel.searchQuery.collectAsStateWithLifecycle() // Query what to search
+    val searchState by viewModel.searchState.collectAsStateWithLifecycle() // search state lading success error
+    // marking the points on map while walking
+    val pathPoint by viewModel.pathPoints.collectAsStateWithLifecycle()
+    // contorl the map with animation camera style movement etc
     var mapController by remember { mutableStateOf<MapLibreMap?>(null) }
 
     LaunchedEffect(searchState) {
         if (searchState is Resource.Success){
             val result = searchState.data
             if (!result.isNullOrEmpty()) {
-                val city = result[0]
+                val city = result[0] // first city that search
 
                 val lat = city.lat?.toDoubleOrNull()
                 val lon = city.lon?.toDoubleOrNull()
@@ -70,20 +81,29 @@ fun RapidMapScreen(
                     CameraUpdateFactory.newLatLngZoom(location, 14.00),
                     2000
                 )
+
             }
         }
     }
 
     Scaffold (
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {viewModel.clearPath()},
+                modifier = Modifier.padding(bottom = 18.dp)
+            ) {
+                Icon(imageVector = Icons.Default.Delete, contentDescription = "Clear Path")
+            }
+        }
     ){ paddingValues ->
 
         Box(modifier = Modifier.padding(paddingValues)){
             MapLibreView(
-                onMapReady = {map ->
-                    mapController = map
-                }
+                pathPoints = pathPoint,
+                onMapReady = {map -> mapController = map }
             )
+            // Search
             OutlinedTextField(
                 value = query,
                 onValueChange = { viewModel.onSearchQueryChange(it) },
@@ -98,7 +118,7 @@ fun RapidMapScreen(
                     }
                 }
             )
-
+            // Loading State
             if (searchState is Resource.Loading){
                 CircularProgressIndicator(modifier = Modifier.align (Alignment.Center))
             }
@@ -110,7 +130,8 @@ fun RapidMapScreen(
 
 @Composable
 fun MapLibreView(
-    onMapReady: (MapLibreMap) -> Unit
+    onMapReady: (MapLibreMap) -> Unit,
+    pathPoints : List<LocationEntity>
 ){
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -126,11 +147,12 @@ fun MapLibreView(
     }
 
 
+    // Observering the lifecyle for mapview
     DisposableEffect(lifecycle,mapView) {
 
         val lifecycleObserver = LifecycleEventObserver{ _, event->
             when(event){
-                Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                Lifecycle.Event.ON_RESUME-> mapView.onResume()
                 Lifecycle.Event.ON_PAUSE -> mapView.onPause()
                 Lifecycle.Event.ON_START -> mapView.onStart()
                 Lifecycle.Event.ON_STOP -> mapView.onStop()
@@ -144,17 +166,53 @@ fun MapLibreView(
 
     }
 
-    AndroidView(
-        factory = {
+    AndroidView( // mapview is not compose component so we are using the bridge of android and compose
+        factory = { // Run one time and create the map
+
+            // map is not ready immediately GPU + rendering engine take time
             mapView.getMapAsync { map ->
-              map.setStyle("https://api.maptiler.com/maps/streets/style.json?key=urVJndTUzEBx0xaseMA6")
-                map.uiSettings.isLogoEnabled = false
-                map.uiSettings.isAttributionEnabled = false // careful with this, usually you need to keep it for free plans
+              // set the style of map.
+              map.setStyle("https://api.maptiler.com/maps/streets/style.json?key=urVJndTUzEBx0xaseMA6"){style->
+
+                  val source = GeoJsonSource("route-source")
+                  style.addSource(source)
+
+                  val layer = LineLayer("route-layer", "route-source").apply {
+                    setProperties(
+                        PropertyFactory.lineColor("red"),
+                        PropertyFactory.lineWidth(5f),
+                        PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+                        PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND)
+                    )
+                  }
+                  style.addLayer(layer)
+              }
+
+                map.uiSettings.isLogoEnabled = false // remove logo of maplibre
+                map.uiSettings.isAttributionEnabled = false // data source info copyright text
                 onMapReady(map)
             }
             mapView
+        },
+
+        update = { view->
+            // Get the map
+            view.getMapAsync { map->
+                // Get the style of the map and modify it using the red line
+                map.getStyle { style->
+                    val source = style.getSourceAs<GeoJsonSource>("route-source")
+                    if (pathPoints.isNotEmpty()){
+                        val points = pathPoints.map {
+                            Point.fromLngLat(it.longitude, it.latitude)
+                        }
+
+                        val lineString = org.maplibre.geojson.LineString.fromLngLats(points)
+                        source?.setGeoJson(lineString)
+                    }
+                }
+            }
         }
+
     )
 
 }
-
