@@ -156,6 +156,7 @@ class TrackingService : Service(), LocationListener, SensorEventListener {
             val entity = LocationEntity(
                 latitude = lat,
                 longitude = lan
+                // We don't need to store time here.
             )
             locationDao.insertLocation(entity)
         }

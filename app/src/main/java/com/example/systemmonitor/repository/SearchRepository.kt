@@ -1,8 +1,8 @@
 package com.example.systemmonitor.repository
 
 import com.example.systemmonitor.common.Resource
-import com.example.systemmonitor.data.NominatimApi
-import com.example.systemmonitor.data.SearchResult
+import com.example.systemmonitor.data.interfaces.NominatimApi
+import com.example.systemmonitor.data.model.SearchResult
 import javax.inject.Inject
 
 class SearchRepository @Inject constructor(

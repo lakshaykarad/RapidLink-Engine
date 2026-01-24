@@ -1,5 +1,6 @@
-package com.example.systemmonitor.data
+package com.example.systemmonitor.data.interfaces
 
+import com.example.systemmonitor.data.model.SearchResult
 import retrofit2.http.GET
 import retrofit2.http.Query
 

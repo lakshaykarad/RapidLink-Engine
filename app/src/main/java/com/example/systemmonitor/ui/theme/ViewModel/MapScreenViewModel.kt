@@ -3,7 +3,7 @@ package com.example.systemmonitor.ui.theme.ViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.systemmonitor.common.Resource
-import com.example.systemmonitor.data.SearchResult
+import com.example.systemmonitor.data.model.SearchResult
 import com.example.systemmonitor.data.local.LocationDao
 import com.example.systemmonitor.repository.SearchRepository
 import dagger.hilt.android.lifecycle.HiltViewModel

@@ -1,4 +1,4 @@
-package com.example.systemmonitor.data
+package com.example.systemmonitor.data.model
 
 import com.google.gson.annotations.SerializedName
 

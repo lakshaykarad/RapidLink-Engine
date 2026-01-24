@@ -1,6 +1,7 @@
 package com.example.systemmonitor.di
 
-import com.example.systemmonitor.data.NominatimApi
+import com.example.systemmonitor.data.interfaces.NominatimApi
+import com.example.systemmonitor.data.interfaces.OsrmApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -8,6 +9,7 @@ import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import javax.inject.Named
 import javax.inject.Singleton
 
 
@@ -50,6 +52,24 @@ object NetworkModule {
     @Singleton
     fun provideNominatimApi(retrofit: Retrofit) : NominatimApi{
         return retrofit.create(NominatimApi::class.java)
+    }
+
+
+    // Retrofit for Routing Osrm
+    @Provides
+    @Singleton
+    @Named("Osrm") // Hilt is dum we want to tell him this is new and different retrofit
+    fun provideOsrmRetrofit(client: OkHttpClient) : Retrofit{
+        return Retrofit.Builder()
+            .baseUrl("http://router.project-osrm.org/")
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    // Osrm Provider
+    fun provideOsrmApi(retrofit: Retrofit) : OsrmApi{
+        return retrofit.create(OsrmApi::class.java)
     }
 
 
