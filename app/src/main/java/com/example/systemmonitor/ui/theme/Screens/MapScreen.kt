@@ -53,7 +53,7 @@ import org.maplibre.geojson.Point
 @Composable
 fun RapidMapScreen(
     viewModel: MapScreenViewModel = hiltViewModel()
-){
+) {
     val query by viewModel.searchQuery.collectAsStateWithLifecycle() // Query what to search
     val searchState by viewModel.searchState.collectAsStateWithLifecycle() // search state lading success error
     // marking the points on map while walking
@@ -61,8 +61,12 @@ fun RapidMapScreen(
     // contorl the map with animation camera style movement etc
     var mapController by remember { mutableStateOf<MapLibreMap?>(null) }
 
+    // draw the line on map
+    val routePointsState by viewModel.routePoints.collectAsStateWithLifecycle()
+
+
     LaunchedEffect(searchState) {
-        if (searchState is Resource.Success){
+        if (searchState is Resource.Success) {
             val result = searchState.data
             if (!result.isNullOrEmpty()) {
                 val city = result[0] // first city that search
@@ -70,38 +74,40 @@ fun RapidMapScreen(
                 val lat = city.lat?.toDoubleOrNull()
                 val lon = city.lon?.toDoubleOrNull()
 
-                if (lat == null || lon == null) {
+                if (lat != null && lon != null) {
+                    val location = LatLng(lat, lon)
+
+                    mapController?.animateCamera(
+                        CameraUpdateFactory.newLatLngZoom(location, 14.00),
+                        2000
+                    )
+                    viewModel.getRouteTo(lat, lon)
+                } else {
                     Log.e("MapScreen", "Invalid lat/lon: lat=${city.lat}, lon=${city.lon}")
                     return@LaunchedEffect
                 }
-
-                val location = LatLng(lat, lon)
-
-                mapController?.animateCamera(
-                    CameraUpdateFactory.newLatLngZoom(location, 14.00),
-                    2000
-                )
 
             }
         }
     }
 
-    Scaffold (
+    Scaffold(
         modifier = Modifier.fillMaxSize(),
         floatingActionButton = {
             FloatingActionButton(
-                onClick = {viewModel.clearPath()},
+                onClick = { viewModel.clearPath() },
                 modifier = Modifier.padding(bottom = 18.dp)
             ) {
                 Icon(imageVector = Icons.Default.Delete, contentDescription = "Clear Path")
             }
         }
-    ){ paddingValues ->
+    ) { paddingValues ->
 
-        Box(modifier = Modifier.padding(paddingValues)){
+        Box(modifier = Modifier.padding(paddingValues)) {
             MapLibreView(
                 pathPoints = pathPoint,
-                onMapReady = {map -> mapController = map }
+                onMapReady = { map -> mapController = map },
+                routePointsState = routePointsState
             )
             // Search
             OutlinedTextField(
@@ -119,10 +125,9 @@ fun RapidMapScreen(
                 }
             )
             // Loading State
-            if (searchState is Resource.Loading){
-                CircularProgressIndicator(modifier = Modifier.align (Alignment.Center))
+            if (searchState is Resource.Loading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
-
         }
 
     }
@@ -131,8 +136,9 @@ fun RapidMapScreen(
 @Composable
 fun MapLibreView(
     onMapReady: (MapLibreMap) -> Unit,
-    pathPoints : List<LocationEntity>
-){
+    pathPoints: List<LocationEntity>,
+    routePointsState: Resource<List<List<Double>>>
+) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
@@ -148,11 +154,11 @@ fun MapLibreView(
 
 
     // Observering the lifecyle for mapview
-    DisposableEffect(lifecycle,mapView) {
+    DisposableEffect(lifecycle, mapView) {
 
-        val lifecycleObserver = LifecycleEventObserver{ _, event->
-            when(event){
-                Lifecycle.Event.ON_RESUME-> mapView.onResume()
+        val lifecycleObserver = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> mapView.onResume()
                 Lifecycle.Event.ON_PAUSE -> mapView.onPause()
                 Lifecycle.Event.ON_START -> mapView.onStart()
                 Lifecycle.Event.ON_STOP -> mapView.onStop()
@@ -171,22 +177,35 @@ fun MapLibreView(
 
             // map is not ready immediately GPU + rendering engine take time
             mapView.getMapAsync { map ->
-              // set the style of map.
-              map.setStyle("https://api.maptiler.com/maps/streets/style.json?key=urVJndTUzEBx0xaseMA6"){style->
+                // set the style of map.
+                map.setStyle("https://api.maptiler.com/maps/streets/style.json?key=urVJndTUzEBx0xaseMA6") { style ->
 
-                  val source = GeoJsonSource("route-source")
-                  style.addSource(source)
+                    val source = GeoJsonSource("route-source")
+                    style.addSource(source)
 
-                  val layer = LineLayer("route-layer", "route-source").apply {
-                    setProperties(
-                        PropertyFactory.lineColor("red"),
-                        PropertyFactory.lineWidth(5f),
-                        PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
-                        PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND)
-                    )
-                  }
-                  style.addLayer(layer)
-              }
+                    val layer = LineLayer("route-layer", "route-source").apply {
+                        setProperties(
+                            PropertyFactory.lineColor("red"),
+                            PropertyFactory.lineWidth(5f),
+                            PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+                            PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND)
+                        )
+                    }
+                    style.addLayer(layer)
+
+                    val blueSource = GeoJsonSource("blue-route-source")
+                    style.addSource(blueSource)
+                    val blueLayer = LineLayer("blue-route-layer", "blue-route-source").apply {
+                        setProperties(
+                            PropertyFactory.lineColor("blue"),
+                            PropertyFactory.lineWidth(5f),
+                            PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+                            PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+                            PropertyFactory.lineDasharray(arrayOf(2f, 2f))
+                        )
+                    }
+                    style.addLayer(blueLayer)
+                }
 
                 map.uiSettings.isLogoEnabled = false // remove logo of maplibre
                 map.uiSettings.isAttributionEnabled = false // data source info copyright text
@@ -195,19 +214,54 @@ fun MapLibreView(
             mapView
         },
 
-        update = { view->
+        update = { view ->
             // Get the map
-            view.getMapAsync { map->
+            view.getMapAsync { map ->
                 // Get the style of the map and modify it using the red line
-                map.getStyle { style->
+                map.getStyle { style ->
+                    // Get the source for red line
                     val source = style.getSourceAs<GeoJsonSource>("route-source")
-                    if (pathPoints.isNotEmpty()){
+                    if (pathPoints.isNotEmpty()) { // show the stading place if we don't find destination plase
                         val points = pathPoints.map {
                             Point.fromLngLat(it.longitude, it.latitude)
                         }
-
                         val lineString = org.maplibre.geojson.LineString.fromLngLats(points)
                         source?.setGeoJson(lineString)
+                    }
+
+                    // 🔵 Blue route (OSRM route)
+                    val blueSource =
+                        style.getSourceAs<GeoJsonSource>("blue-route-source")
+
+                    if (routePointsState is Resource.Success) {
+                        val coordinates = routePointsState.data
+
+                        if (!coordinates.isNullOrEmpty()) {
+
+                            // 1️⃣ Draw the route
+                            val routePoints = coordinates.map {
+                                Point.fromLngLat(it[0], it[1]) // lon, lat
+                            }
+
+                            val lineString =
+                                org.maplibre.geojson.LineString.fromLngLats(routePoints)
+                            blueSource?.setGeoJson(lineString)
+
+                            // 2️⃣ Move camera to show whole route (IMPORTANT)
+                            val first = coordinates.first()
+                            val last = coordinates.last()
+
+                            val bounds =
+                                org.maplibre.android.geometry.LatLngBounds.Builder()
+                                    .include(LatLng(first[1], first[0])) // lat, lon
+                                    .include(LatLng(last[1], last[0]))   // lat, lon
+                                    .build()
+
+                            map.animateCamera(
+                                CameraUpdateFactory.newLatLngBounds(bounds, 100),
+                                2000
+                            )
+                        }
                     }
                 }
             }

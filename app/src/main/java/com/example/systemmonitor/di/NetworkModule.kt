@@ -61,14 +61,16 @@ object NetworkModule {
     @Named("Osrm") // Hilt is dum we want to tell him this is new and different retrofit
     fun provideOsrmRetrofit(client: OkHttpClient) : Retrofit{
         return Retrofit.Builder()
-            .baseUrl("http://router.project-osrm.org/")
+            .baseUrl("https://router.project-osrm.org/")
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
 
     // Osrm Provider
-    fun provideOsrmApi(retrofit: Retrofit) : OsrmApi{
+    @Provides
+    @Singleton
+    fun provideOsrmApi(@Named("Osrm") retrofit: Retrofit) : OsrmApi{
         return retrofit.create(OsrmApi::class.java)
     }
 

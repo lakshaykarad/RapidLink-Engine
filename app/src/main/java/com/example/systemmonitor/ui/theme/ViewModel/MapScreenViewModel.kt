@@ -1,8 +1,10 @@
 package com.example.systemmonitor.ui.theme.ViewModel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.systemmonitor.common.Resource
+import com.example.systemmonitor.data.interfaces.OsrmApi
 import com.example.systemmonitor.data.model.SearchResult
 import com.example.systemmonitor.data.local.LocationDao
 import com.example.systemmonitor.repository.SearchRepository
@@ -19,7 +21,8 @@ import javax.inject.Inject
 @HiltViewModel
 class MapScreenViewModel @Inject constructor(
     private val repository: SearchRepository,
-    private val locationDao: LocationDao
+    private val locationDao: LocationDao,
+    private val osrmApi: OsrmApi
 ) : ViewModel(){
 
     // user enter location
@@ -30,12 +33,43 @@ class MapScreenViewModel @Inject constructor(
     private val _searchState = MutableStateFlow<Resource<List<SearchResult>>>(Resource.Success(emptyList()))
     val searchState = _searchState.asStateFlow()
 
+    // draw the line on map
+    private val _routePoints = MutableStateFlow<Resource<List<List<Double>>>>(Resource.Success(emptyList()))
+    val routePoints = _routePoints.asStateFlow()
+
+    fun getRouteTo(destinationLat: Double, destinationLon: Double){
+        viewModelScope.launch {
+            _routePoints.value = Resource.Loading()
+
+            val startLat = 28.6139
+            val startLon = 77.2090
+
+            // we need to check json data file where we see coordinates and also check the data class for batter understanding
+            val coordinates = "$startLon,$startLat;$destinationLon,$destinationLat"
+
+            try {
+                val response = osrmApi.getRoute(coordinates)
+                if (response.routes.isNotEmpty()){
+                    val shape = response.routes[0].geometry.coordinates // shape -> The exact road path made of many small points
+                    _routePoints.value = Resource.Success(shape)
+                }else{
+                    _routePoints.value = Resource.Error("No route found")
+                }
+            }catch (e : Exception){
+                _routePoints.value = Resource.Error("${e.message} : Somthing went wrong")
+                Log.e("OSRM", "Error: ${e.message}")
+            }
+
+        }
+    }
+
     // Update the list automatically
     val pathPoints = locationDao.getAllLocations().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
+
     // Clear Path
     fun clearPath(){
         viewModelScope.launch {

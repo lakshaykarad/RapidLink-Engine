@@ -1,9 +1,12 @@
 package com.example.systemmonitor.data.model
 
+import com.google.gson.annotations.SerializedName
+
 // for batter understanding go and check one response of OSRM demo where we can see this data class in json form.
 
 data class OsrmResponse(
-    val route: List<Route> // use to access whole data
+    @SerializedName("routes")
+    val routes: List<Route> // use to access whole data
 )
 
 data class Route(
