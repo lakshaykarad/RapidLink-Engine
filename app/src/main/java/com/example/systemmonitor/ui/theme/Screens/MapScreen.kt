@@ -38,7 +38,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.systemmonitor.common.Resource
 import com.example.systemmonitor.data.local.LocationEntity
-import com.example.systemmonitor.ui.theme.ViewModel.MapScreenViewModel
+import com.example.systemmonitor.ui.theme.Screens.MapScreenViewModel
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
@@ -238,10 +238,11 @@ fun MapLibreView(
                 map.getStyle { style ->
                     // Get the source for red line
                     val source = style.getSourceAs<GeoJsonSource>("route-source")
-                    if (pathPoints.isNotEmpty()) { // show the stading place if we don't find destination plase
+                    if (pathPoints.isNotEmpty()) { // show the standing place if we don't find destination plase
                         val points = pathPoints.map {
                             Point.fromLngLat(it.longitude, it.latitude)
                         }
+
                         val lineString = org.maplibre.geojson.LineString.fromLngLats(points)
                         source?.setGeoJson(lineString)
 

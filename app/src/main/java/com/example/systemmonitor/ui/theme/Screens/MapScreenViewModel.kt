@@ -1,24 +1,28 @@
-package com.example.systemmonitor.ui.theme.ViewModel
+package com.example.systemmonitor.ui.theme.Screens
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.systemmonitor.common.Resource
 import com.example.systemmonitor.data.interfaces.OsrmApi
-import com.example.systemmonitor.data.model.SearchResult
 import com.example.systemmonitor.data.local.LocationDao
+import com.example.systemmonitor.data.model.SearchResult
 import com.example.systemmonitor.repository.SearchRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-
 import javax.inject.Inject
 
 @HiltViewModel
+@OptIn(FlowPreview::class)
 class MapScreenViewModel @Inject constructor(
     private val repository: SearchRepository,
     private val locationDao: LocationDao,
@@ -30,19 +34,65 @@ class MapScreenViewModel @Inject constructor(
     val searchQuery = _searchQuery.asStateFlow()
 
     // search state start from empty list then modity later itself.
-    private val _searchState = MutableStateFlow<Resource<List<SearchResult>>>(Resource.Success(emptyList()))
+    private val _searchState =
+        MutableStateFlow<Resource<List<SearchResult>>>(Resource.Success(emptyList()))
     val searchState = _searchState.asStateFlow()
 
     // draw the line on map
-    private val _routePoints = MutableStateFlow<Resource<List<List<Double>>>>(Resource.Success(emptyList()))
+    private val _routePoints =
+        MutableStateFlow<Resource<List<List<Double>>>>(Resource.Success(emptyList()))
     val routePoints = _routePoints.asStateFlow()
+
+    // this block of code use to set the limitation of nominatim 1 per second request
+    // modify the query here
+    init {
+        viewModelScope.launch {
+            _searchQuery.debounce(500)
+                .distinctUntilChanged()  // don't request for "A" -> to again -> "A"
+                .collectLatest { query-> // send the query
+                    if (query.isNotEmpty()){
+                        searchLocation(query)
+                    }
+                }
+        }
+    }
+
+
+    // change empty
+    fun onSearchQueryChange(newQuery : String){
+        _searchQuery.value = newQuery
+    }
+
+    // deal with repo and pass to ui
+    private suspend fun searchLocation(query : String){
+
+        _searchState.value = Resource.Loading()
+            try {
+                val result = repository.searchLocation(query)
+                if (result.data.isNullOrEmpty()){
+                    _searchState.value = Resource.Error("No result found for $query" ?: "Unknow Error")
+                }else{
+                    _searchState.value = result
+                }
+            }catch (e : Exception){
+                _searchState.value = Resource.Error("${e.localizedMessage}" ?: "Somthing went wrong")
+            }
+    }
+
 
     fun getRouteTo(destinationLat: Double, destinationLon: Double){
         viewModelScope.launch {
             _routePoints.value = Resource.Loading()
 
-            val startLat = 28.6139
-            val startLon = 77.2090
+            val currentList = locationDao.getAllLocations().first()
+
+            if (currentList.isNullOrEmpty()){
+                _routePoints.value = Resource.Error("Waiting for GPS... Walk a few steps!")
+                return@launch
+            }
+            val lastLocation = currentList.last()
+            val startLat = lastLocation.latitude
+            val startLon = lastLocation.longitude
 
             // we need to check json data file where we see coordinates and also check the data class for batter understanding
             val coordinates = "$startLon,$startLat;$destinationLon,$destinationLat"
@@ -66,7 +116,7 @@ class MapScreenViewModel @Inject constructor(
     // Update the list automatically
     val pathPoints = locationDao.getAllLocations().stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Companion.WhileSubscribed(5000),
         initialValue = emptyList()
     )
 
@@ -77,36 +127,6 @@ class MapScreenViewModel @Inject constructor(
         }
     }
 
-    // change empty
-    fun onSearchQueryChange(newQuery : String){
-        _searchQuery.value = newQuery
-    }
 
-    // deal with repo and pass to ui
-    fun searchLocation(){
-        val query = _searchQuery.value
-
-        if (query.isEmpty()){
-            _searchState.value = Resource.Error("Please enter the location")
-            return
-        }
-
-        viewModelScope.launch {
-            _searchState.value = Resource.Loading()
-
-            try {
-                val result = repository.searchLocation(query)
-                if (result.data.isNullOrEmpty()){
-                    _searchState.value = Resource.Error("No result found for $query" ?: "Unknow Error")
-                }else{
-                    _searchState.value = result
-                }
-            }catch (e : Exception){
-                    _searchState.value = Resource.Error("${e.localizedMessage}" ?: "Somthing went wrong")
-            }
-
-        }
-
-    }
 
 }
