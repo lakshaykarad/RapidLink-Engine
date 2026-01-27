@@ -20,8 +20,6 @@ object NetworkModule {
     /**
      * OKHttpClient use to ensure security we send agent here and say yes it's me not fake people
      **/
-
-
     @Provides
     @Singleton
     fun provideOkhttpClient() : OkHttpClient{

@@ -44,6 +44,7 @@ import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
+import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
@@ -180,6 +181,7 @@ fun MapLibreView(
                 // set the style of map.
                 map.setStyle("https://api.maptiler.com/maps/streets/style.json?key=urVJndTUzEBx0xaseMA6") { style ->
 
+                    // Red line source for tracking
                     val source = GeoJsonSource("route-source")
                     style.addSource(source)
 
@@ -193,6 +195,7 @@ fun MapLibreView(
                     }
                     style.addLayer(layer)
 
+                    // blue line for navigation
                     val blueSource = GeoJsonSource("blue-route-source")
                     style.addSource(blueSource)
                     val blueLayer = LineLayer("blue-route-layer", "blue-route-source").apply {
@@ -205,6 +208,20 @@ fun MapLibreView(
                         )
                     }
                     style.addLayer(blueLayer)
+
+                    // location layer for where we are standing
+                    val locationSource = GeoJsonSource("location-source")
+                    style.addSource(locationSource)
+
+                    val locationLayer = CircleLayer("location-layer", "location-source").apply {
+                       setProperties(
+                           PropertyFactory.circleColor("2196F3"), // blue dot
+                           PropertyFactory.circleRadius(8f),
+                           PropertyFactory.circleStrokeColor("white"),
+                           PropertyFactory.circleStrokeWidth(3f)
+                       )
+                    }
+                    style.addLayer(locationLayer)
                 }
 
                 map.uiSettings.isLogoEnabled = false // remove logo of maplibre
@@ -227,32 +244,34 @@ fun MapLibreView(
                         }
                         val lineString = org.maplibre.geojson.LineString.fromLngLats(points)
                         source?.setGeoJson(lineString)
+
+                        val lastPoint = pathPoints.last()
+                        val locationSource = style.getSourceAs<GeoJsonSource>("location-source")
+                        val currentPoint = Point.fromLngLat(lastPoint.longitude,lastPoint.latitude)
+
+                        locationSource?.setGeoJson(currentPoint)
+
                     }
 
                     // 🔵 Blue route (OSRM route)
-                    val blueSource =
-                        style.getSourceAs<GeoJsonSource>("blue-route-source")
+                    val blueSource = style.getSourceAs<GeoJsonSource>("blue-route-source")
 
                     if (routePointsState is Resource.Success) {
                         val coordinates = routePointsState.data
-
                         if (!coordinates.isNullOrEmpty()) {
-
-                            // 1️⃣ Draw the route
+                            //  Draw the route
                             val routePoints = coordinates.map {
                                 Point.fromLngLat(it[0], it[1]) // lon, lat
                             }
 
-                            val lineString =
-                                org.maplibre.geojson.LineString.fromLngLats(routePoints)
+                            val lineString = org.maplibre.geojson.LineString.fromLngLats(routePoints)
                             blueSource?.setGeoJson(lineString)
 
-                            // 2️⃣ Move camera to show whole route (IMPORTANT)
+                            // Move camera to show whole route (IMPORTANT)
                             val first = coordinates.first()
                             val last = coordinates.last()
 
-                            val bounds =
-                                org.maplibre.android.geometry.LatLngBounds.Builder()
+                            val bounds = org.maplibre.android.geometry.LatLngBounds.Builder()
                                     .include(LatLng(first[1], first[0])) // lat, lon
                                     .include(LatLng(last[1], last[0]))   // lat, lon
                                     .build()
@@ -261,6 +280,7 @@ fun MapLibreView(
                                 CameraUpdateFactory.newLatLngBounds(bounds, 100),
                                 2000
                             )
+
                         }
                     }
                 }
