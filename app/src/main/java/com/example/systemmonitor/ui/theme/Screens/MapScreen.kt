@@ -38,7 +38,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.systemmonitor.common.Resource
 import com.example.systemmonitor.data.local.LocationEntity
-import com.example.systemmonitor.ui.theme.Screens.MapScreenViewModel
+import com.example.systemmonitor.ui.theme.viewmodel.MapScreenViewModel
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng

@@ -1,4 +1,4 @@
-package com.example.systemmonitor.ui.theme.Screens
+package com.example.systemmonitor.ui.theme.viewmodel
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
