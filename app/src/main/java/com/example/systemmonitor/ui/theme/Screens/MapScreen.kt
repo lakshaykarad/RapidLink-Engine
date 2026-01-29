@@ -3,12 +3,15 @@ package com.example.systemmonitor.ui.theme.Screens
 import android.R
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
@@ -26,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
@@ -109,14 +113,40 @@ fun RapidMapScreen(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { viewModel.clearPath() },
-                modifier = Modifier.padding(bottom = 18.dp)
-            ) {
-                Icon(imageVector = Icons.Default.Delete, contentDescription = "Clear Path")
+            Column { // Use Column to stack buttons
+                // BUTTON 1: WHERE AM I? (New Feature)
+                FloatingActionButton(
+                    onClick = {
+                        if (pathPoint.isNotEmpty()) {
+                            val last = pathPoint.last()
+                            val userLocation = LatLng(last.latitude, last.longitude)
+
+                            // Fly to user!
+                            mapController?.animateCamera(
+                                CameraUpdateFactory.newLatLngZoom(userLocation, 16.0),
+                                1500 // 1.5 seconds speed
+                            )
+                        } else {
+                            // Optional: Show Toast "Waiting for GPS..."
+                        }
+                    },
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.LocationOn, contentDescription = "My Location")
+                }
+
+                // BUTTON 2: CLEAR PATH (Existing)
+                FloatingActionButton(
+                    onClick = { viewModel.clearPath() },
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    containerColor = androidx.compose.ui.graphics.Color.Red, // Optional: Make delete red
+                    contentColor = androidx.compose.ui.graphics.Color.White
+                ) {
+                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Clear Path")
+                }
             }
         }
-    ) { paddingValues ->
+    ){ paddingValues ->
 
         Box(modifier = Modifier.padding(paddingValues)) {
             MapLibreView(
