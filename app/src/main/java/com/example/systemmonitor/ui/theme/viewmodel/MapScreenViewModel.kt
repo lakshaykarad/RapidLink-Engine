@@ -63,19 +63,19 @@ class MapScreenViewModel @Inject constructor(
     }
 
     // deal with repo and pass to ui
-    private suspend fun searchLocation(query : String){
-
+    private suspend fun searchLocation(query: String) {
         _searchState.value = Resource.Loading()
 
-        try {
-            val result = repository.searchLocation(query)
-            if (result.data.isNullOrEmpty()){
-                _searchState.value = Resource.Error("No result found for $query" ?: "Unknow Error")
-            }else{
-                _searchState.value = result
+        val result = repository.searchLocation(query)
+        
+        _searchState.value = result.data?.let { data ->
+            if (data.isNotEmpty()) {
+                result
+            } else {
+                Resource.Error("No result found for $query")
             }
-        } catch (e : Exception){
-            _searchState.value = Resource.Error("${e.localizedMessage}" ?: "Somthing went wrong")
+        } ?: run {
+            result
         }
 
     }

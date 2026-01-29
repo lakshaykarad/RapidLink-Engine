@@ -29,9 +29,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -93,6 +95,7 @@ fun RapidMapScreen(
 
             }
         }
+
     }
 
     LaunchedEffect(routePointsState) {
@@ -109,6 +112,7 @@ fun RapidMapScreen(
                 mapController?.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 150), 2000)
             }
         }
+
     }
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -178,6 +182,15 @@ fun RapidMapScreen(
             // Loading State
             if (searchState is Resource.Loading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+            if (searchState is Resource.Error){
+                Text(
+                    text = searchState.message ?: "Unknown error",
+                    color = Color.Red,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(16.dp)
+                )
             }
         }
 

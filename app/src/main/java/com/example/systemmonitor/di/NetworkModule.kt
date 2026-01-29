@@ -7,8 +7,10 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
+import okio.Timeout
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Singleton
 
@@ -33,6 +35,12 @@ object NetworkModule {
                     .build()
                 chain.proceed(newRequest)
             }
+            .retryOnConnectionFailure(true) // retry for data
+            .connectTimeout(10, TimeUnit.SECONDS) // connectaion time 10
+            .writeTimeout(10, TimeUnit.SECONDS) // write time
+            .readTimeout(15, TimeUnit.SECONDS) // read time
+            .callTimeout(20, TimeUnit.SECONDS ) // wait for all if not get the result throw InterruptedIOException
+            .followRedirects(true) // follow the https requests (301, 302, 307, 308)
             .build()
     }
 
