@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
@@ -143,10 +144,18 @@ fun RapidMapScreen(
                 FloatingActionButton(
                     onClick = { viewModel.clearPath() },
                     modifier = Modifier.padding(bottom = 16.dp),
-                    containerColor = androidx.compose.ui.graphics.Color.Red, // Optional: Make delete red
-                    contentColor = androidx.compose.ui.graphics.Color.White
+                    containerColor = Color.Red, // Optional: Make delete red
+                    contentColor = Color.White
                 ) {
                     Icon(imageVector = Icons.Default.Delete, contentDescription = "Clear Path")
+                }
+                FloatingActionButton(
+                    onClick = { viewModel.clearRoute() },
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    containerColor = Color.Blue, // Optional: Make delete red
+                    contentColor = Color.White
+                ) {
+                    Icon(imageVector = Icons.Default.Close, contentDescription = "Clear Path")
                 }
             }
         }
@@ -168,14 +177,12 @@ fun RapidMapScreen(
                 placeholder = { Text("Search City (e.g. Jaipur)") },
                 singleLine = true,
                 trailingIcon = {
-                    // 3. The Search Icon button
-                    IconButton(onClick = {
-                        // ERROR FIXED: Don't call viewModel.searchLocation().
-                        // Just hide the keyboard because the 'onValueChange' above
-                        // has already started the search process.
-                        keyboardController?.hide()
-                    }) {
-                        Icon(imageVector = Icons.Default.Search, contentDescription = "Search")
+                    if (query.isNotEmpty()){
+                        IconButton(
+                            onClick = {viewModel.clearRoute()}
+                        ) {
+                            Icon(imageVector = Icons.Default.Close, contentDescription = "Clear Route")
+                        }
                     }
                 }
             )
@@ -317,15 +324,19 @@ fun MapLibreView(
                     }
 
 
+                    val blueSource = style.getSourceAs<GeoJsonSource>("blue-route-source")
+
                     if (routePointsState is Resource.Success) {
                         val coordinates = routePointsState.data
+
                         if (!coordinates.isNullOrEmpty()) {
-                            //  Draw the route
-                            val blueSource = style.getSourceAs<GeoJsonSource>("blue-route-source")
                             val routePoints = coordinates.map { Point.fromLngLat(it[0], it[1]) }
                             blueSource?.setGeoJson(org.maplibre.geojson.LineString.fromLngLats(routePoints))
+                        } else {
+                            blueSource?.setGeoJson(org.maplibre.geojson.FeatureCollection.fromFeatures(arrayOf()))
                         }
                     }
+
                 }
             }
         }

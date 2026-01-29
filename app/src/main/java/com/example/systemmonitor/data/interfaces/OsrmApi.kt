@@ -12,7 +12,7 @@ interface OsrmApi {
     suspend fun getRoute(
         // using encoded for ignore ? : and others
         @Path("coordinates", encoded = true) coordinates: String,
-        @Query("overview") overview: String = "full", // it give full line smoth and proper way
+        @Query("overview") overview: String = "full", // it give full line smooth and proper way
         @Query("geometries") geometries: String = "geojson" // hold coordinates
     ): OsrmResponse
 }

@@ -26,7 +26,8 @@ import javax.inject.Inject
 class MapScreenViewModel @Inject constructor(
     private val repository: SearchRepository,
     private val locationDao: LocationDao,
-    private val osrmApi: OsrmApi
+    private val osrmApi: OsrmApi,
+    private val searchRepository: SearchRepository
 ) : ViewModel(){
 
     // user enter location
@@ -62,22 +63,26 @@ class MapScreenViewModel @Inject constructor(
         _searchQuery.value = newQuery
     }
 
-    // deal with repo and pass to ui
-    private suspend fun searchLocation(query: String) {
+    fun searchLocation(query: String) {
+         viewModelScope.launch {
+             performSearchLogic(query)
+         }
+    }
+
+    private suspend fun performSearchLogic(query: String) {
         _searchState.value = Resource.Loading()
 
         val result = repository.searchLocation(query)
-        
+
         _searchState.value = result.data?.let { data ->
             if (data.isNotEmpty()) {
-                result
+                result // Success
             } else {
                 Resource.Error("No result found for $query")
             }
         } ?: run {
-            result
+            result // Error
         }
-
     }
 
 
@@ -130,6 +135,15 @@ class MapScreenViewModel @Inject constructor(
         viewModelScope.launch {
             locationDao.clearAllLocations()
         }
+    }
+
+    fun clearRoute(){
+       viewModelScope.launch {
+           _searchState.value = Resource.Success(emptyList())
+           _searchQuery.value = ""
+           _routePoints.value = Resource.Success(emptyList())
+       }
+
     }
 
 
