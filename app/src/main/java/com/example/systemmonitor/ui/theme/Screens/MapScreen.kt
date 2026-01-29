@@ -27,13 +27,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleObserver
-import androidx.lifecycle.Lifecycling
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.systemmonitor.common.Resource
@@ -64,14 +63,15 @@ fun RapidMapScreen(
 
     // draw the line on map
     val routePointsState by viewModel.routePoints.collectAsStateWithLifecycle()
-
+    // keybroad controler
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(searchState) {
         if (searchState is Resource.Success) {
             val result = searchState.data
             if (!result.isNullOrEmpty()) {
                 val city = result[0] // first city that search
-
+                // Get the location of the city
                 val lat = city.lat?.toDoubleOrNull()
                 val lon = city.lon?.toDoubleOrNull()
 
@@ -79,8 +79,7 @@ fun RapidMapScreen(
                     val location = LatLng(lat, lon)
 
                     mapController?.animateCamera(
-                        CameraUpdateFactory.newLatLngZoom(location, 14.00),
-                        2000
+                        CameraUpdateFactory.newLatLngZoom(location, 14.00)
                     )
                     viewModel.getRouteTo(lat, lon)
                 } else {
@@ -92,6 +91,21 @@ fun RapidMapScreen(
         }
     }
 
+    LaunchedEffect(routePointsState) {
+        if (routePointsState is Resource.Success) {
+            val coords = routePointsState.data
+            if (!coords.isNullOrEmpty()) {
+                val first = coords.first()
+                val last = coords.last()
+                val bounds = org.maplibre.android.geometry.LatLngBounds.Builder()
+                    .include(LatLng(first[1], first[0]))
+                    .include(LatLng(last[1], last[0]))
+                    .build()
+
+                mapController?.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 150), 2000)
+            }
+        }
+    }
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         floatingActionButton = {
@@ -120,7 +134,13 @@ fun RapidMapScreen(
                 placeholder = { Text("Search City (e.g. Jaipur)") },
                 singleLine = true,
                 trailingIcon = {
-                    IconButton(onClick = { viewModel.searchLocation() }) {
+                    // 3. The Search Icon button
+                    IconButton(onClick = {
+                        // ERROR FIXED: Don't call viewModel.searchLocation().
+                        // Just hide the keyboard because the 'onValueChange' above
+                        // has already started the search process.
+                        keyboardController?.hide()
+                    }) {
                         Icon(imageVector = Icons.Default.Search, contentDescription = "Search")
                     }
                 }
@@ -144,19 +164,17 @@ fun MapLibreView(
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
     remember {
-        MapLibre.getInstance(context)
+        MapLibre.getInstance(context) // Map instance
     }
 
     val mapView = remember {
-        MapView(context).apply {
-            onCreate(Bundle())
-        }
+        MapView(context)
     }
 
 
     // Observering the lifecyle for mapview
     DisposableEffect(lifecycle, mapView) {
-
+        mapView.onCreate(Bundle()) // create the map with lifecycle observation
         val lifecycleObserver = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> mapView.onResume()
@@ -168,7 +186,7 @@ fun MapLibreView(
             }
         }
 
-        lifecycle.addObserver(lifecycleObserver)
+        lifecycle.addObserver(lifecycleObserver) // added the lifecycle observer
         onDispose { lifecycle.removeObserver(lifecycleObserver) }
 
     }
@@ -215,7 +233,7 @@ fun MapLibreView(
 
                     val locationLayer = CircleLayer("location-layer", "location-source").apply {
                        setProperties(
-                           PropertyFactory.circleColor("2196F3"), // blue dot
+                           PropertyFactory.circleColor("#2196F3"), // blue dot
                            PropertyFactory.circleRadius(8f),
                            PropertyFactory.circleStrokeColor("white"),
                            PropertyFactory.circleStrokeWidth(3f)
@@ -237,8 +255,9 @@ fun MapLibreView(
                 // Get the style of the map and modify it using the red line
                 map.getStyle { style ->
                     // Get the source for red line
-                    val source = style.getSourceAs<GeoJsonSource>("route-source")
+                    if (!style.isFullyLoaded) return@getStyle
                     if (pathPoints.isNotEmpty()) { // show the standing place if we don't find destination plase
+                        val source = style.getSourceAs<GeoJsonSource>("route-source")
                         val points = pathPoints.map {
                             Point.fromLngLat(it.longitude, it.latitude)
                         }
@@ -254,34 +273,14 @@ fun MapLibreView(
 
                     }
 
-                    // 🔵 Blue route (OSRM route)
-                    val blueSource = style.getSourceAs<GeoJsonSource>("blue-route-source")
 
                     if (routePointsState is Resource.Success) {
                         val coordinates = routePointsState.data
                         if (!coordinates.isNullOrEmpty()) {
                             //  Draw the route
-                            val routePoints = coordinates.map {
-                                Point.fromLngLat(it[0], it[1]) // lon, lat
-                            }
-
-                            val lineString = org.maplibre.geojson.LineString.fromLngLats(routePoints)
-                            blueSource?.setGeoJson(lineString)
-
-                            // Move camera to show whole route (IMPORTANT)
-                            val first = coordinates.first()
-                            val last = coordinates.last()
-
-                            val bounds = org.maplibre.android.geometry.LatLngBounds.Builder()
-                                    .include(LatLng(first[1], first[0])) // lat, lon
-                                    .include(LatLng(last[1], last[0]))   // lat, lon
-                                    .build()
-
-                            map.animateCamera(
-                                CameraUpdateFactory.newLatLngBounds(bounds, 100),
-                                2000
-                            )
-
+                            val blueSource = style.getSourceAs<GeoJsonSource>("blue-route-source")
+                            val routePoints = coordinates.map { Point.fromLngLat(it[0], it[1]) }
+                            blueSource?.setGeoJson(org.maplibre.geojson.LineString.fromLngLats(routePoints))
                         }
                     }
                 }

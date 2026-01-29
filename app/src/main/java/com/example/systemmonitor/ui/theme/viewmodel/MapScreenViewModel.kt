@@ -57,7 +57,6 @@ class MapScreenViewModel @Inject constructor(
         }
     }
 
-
     // change empty
     fun onSearchQueryChange(newQuery : String){
         _searchQuery.value = newQuery
@@ -67,16 +66,18 @@ class MapScreenViewModel @Inject constructor(
     private suspend fun searchLocation(query : String){
 
         _searchState.value = Resource.Loading()
-            try {
-                val result = repository.searchLocation(query)
-                if (result.data.isNullOrEmpty()){
-                    _searchState.value = Resource.Error("No result found for $query" ?: "Unknow Error")
-                }else{
-                    _searchState.value = result
-                }
-            }catch (e : Exception){
-                _searchState.value = Resource.Error("${e.localizedMessage}" ?: "Somthing went wrong")
+
+        try {
+            val result = repository.searchLocation(query)
+            if (result.data.isNullOrEmpty()){
+                _searchState.value = Resource.Error("No result found for $query" ?: "Unknow Error")
+            }else{
+                _searchState.value = result
             }
+        } catch (e : Exception){
+            _searchState.value = Resource.Error("${e.localizedMessage}" ?: "Somthing went wrong")
+        }
+
     }
 
 
@@ -84,12 +85,14 @@ class MapScreenViewModel @Inject constructor(
         viewModelScope.launch {
             _routePoints.value = Resource.Loading()
 
+            // Get CurrentLocation
             val currentList = locationDao.getAllLocations().first()
 
             if (currentList.isNullOrEmpty()){
                 _routePoints.value = Resource.Error("Waiting for GPS... Walk a few steps!")
                 return@launch
             }
+
             val lastLocation = currentList.last()
             val startLat = lastLocation.latitude
             val startLon = lastLocation.longitude
@@ -100,7 +103,9 @@ class MapScreenViewModel @Inject constructor(
             try {
                 val response = osrmApi.getRoute(coordinates)
                 if (response.routes.isNotEmpty()){
-                    val shape = response.routes[0].geometry.coordinates // shape -> The exact road path made of many small points
+                    val shape = response.routes[0].geometry.coordinates.toMutableList() // shape -> The exact road path made of many small points
+                    val myLocationPoint = listOf(startLon,startLat)
+                    shape.add(0,myLocationPoint)
                     _routePoints.value = Resource.Success(shape)
                 }else{
                     _routePoints.value = Resource.Error("No route found")
