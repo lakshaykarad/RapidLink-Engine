@@ -4,23 +4,36 @@ import android.R
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -34,7 +47,10 @@ import androidx.compose.ui.graphics.Color
 
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.SemanticsProperties.ImeAction
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -45,6 +61,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.systemmonitor.common.Resource
 import com.example.systemmonitor.data.local.LocationEntity
 import com.example.systemmonitor.ui.theme.viewmodel.MapScreenViewModel
+import kotlinx.coroutines.delay
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
@@ -67,11 +84,12 @@ fun RapidMapScreen(
     val pathPoint by viewModel.pathPoints.collectAsStateWithLifecycle()
     // contorl the map with animation camera style movement etc
     var mapController by remember { mutableStateOf<MapLibreMap?>(null) }
-
     // draw the line on map
     val routePointsState by viewModel.routePoints.collectAsStateWithLifecycle()
-    // keybroad controler
-    val keyboardController = LocalSoftwareKeyboardController.current
+
+    val distanceMeters by viewModel.totalDistance.collectAsStateWithLifecycle() // Distance
+    val speedKmph by viewModel.currentSpeed.collectAsStateWithLifecycle()  // Speed
+    val step by viewModel.stepCount.collectAsStateWithLifecycle()
 
     LaunchedEffect(searchState) {
         if (searchState is Resource.Success) {
@@ -125,14 +143,12 @@ fun RapidMapScreen(
                         if (pathPoint.isNotEmpty()) {
                             val last = pathPoint.last()
                             val userLocation = LatLng(last.latitude, last.longitude)
-
-                            // Fly to user!
                             mapController?.animateCamera(
                                 CameraUpdateFactory.newLatLngZoom(userLocation, 16.0),
                                 1500 // 1.5 seconds speed
                             )
                         } else {
-                            // Optional: Show Toast "Waiting for GPS..."
+
                         }
                     },
                     modifier = Modifier.padding(bottom = 16.dp)
@@ -140,19 +156,18 @@ fun RapidMapScreen(
                     Icon(imageVector = Icons.Default.LocationOn, contentDescription = "My Location")
                 }
 
-                // BUTTON 2: CLEAR PATH (Existing)
                 FloatingActionButton(
                     onClick = { viewModel.clearPath() },
                     modifier = Modifier.padding(bottom = 16.dp),
-                    containerColor = Color.Red, // Optional: Make delete red
+                    containerColor = Color.Red,
                     contentColor = Color.White
                 ) {
                     Icon(imageVector = Icons.Default.Delete, contentDescription = "Clear Path")
                 }
                 FloatingActionButton(
                     onClick = { viewModel.clearRoute() },
-                    modifier = Modifier.padding(bottom = 16.dp),
-                    containerColor = Color.Blue, // Optional: Make delete red
+                    modifier = Modifier.padding(bottom = 80.dp),
+                    containerColor = Color.Blue,
                     contentColor = Color.White
                 ) {
                     Icon(imageVector = Icons.Default.Close, contentDescription = "Clear Path")
@@ -173,23 +188,114 @@ fun RapidMapScreen(
                 onValueChange = { viewModel.onSearchQueryChange(it) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.0.dp), // Add some padding so it doesn't touch the edges
-                placeholder = { Text("Search City (e.g. Jaipur)") },
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                placeholder = { Text("Search City ") },
                 singleLine = true,
+                shape = RoundedCornerShape(12.dp), // Modern rounded corners
+                leadingIcon = {
+                    Icon(imageVector = Icons.Default.Search, contentDescription = "Search Icon")
+                },
                 trailingIcon = {
-                    if (query.isNotEmpty()){
-                        IconButton(
-                            onClick = {viewModel.clearRoute()}
-                        ) {
-                            Icon(imageVector = Icons.Default.Close, contentDescription = "Clear Route")
+                    if (query.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.clearRoute() }) {
+                            Icon(imageVector = Icons.Default.Close, contentDescription = "Clear")
                         }
                     }
-                }
+                },
+
+                keyboardActions = KeyboardActions(
+                    onSearch = { /* Optional: trigger search logic on enter */ }
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                )
             )
+
+            Card(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .padding(bottom = 10.dp), // Lift it up so FAB don't cover it
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White.copy(alpha = 0.9f)
+                ),
+                elevation = CardDefaults.cardElevation(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "%.1f".format(speedKmph),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        Text(
+                            text = "km/h",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.Gray
+                        )
+                    }
+
+                    VerticalDivider(
+                        modifier = Modifier
+                            .height(40.dp)
+                            .width(1.dp),
+                        color = Color.LightGray
+                    )
+
+                    // DISTANCE METER
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        // Convert meters to km if > 1000
+                        val distanceText = if (distanceMeters > 1000) {
+                            "%.2f km".format(distanceMeters / 1000)
+                        } else {
+                            "%.0f m".format(distanceMeters)
+                        }
+
+                        Text(
+                            text = distanceText,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        Text(
+                            text = "Distance",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.Gray
+                        )
+                    }
+
+                    VerticalDivider(
+                        modifier = Modifier
+                            .height(40.dp)
+                            .width(1.dp),
+                        color = Color.LightGray
+                    )
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "$step",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight =  FontWeight.Bold,
+                            color = Color(0xFF4CAF50) // Green color for fitness
+                        )
+                        Text("Steps", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    }
+                }
+            }
+
             // Loading State
             if (searchState is Resource.Loading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
+
             if (searchState is Resource.Error){
                 Text(
                     text = searchState.message ?: "Unknown error",
@@ -200,7 +306,6 @@ fun RapidMapScreen(
                 )
             }
         }
-
     }
 }
 
@@ -268,11 +373,10 @@ fun MapLibreView(
                     style.addSource(blueSource)
                     val blueLayer = LineLayer("blue-route-layer", "blue-route-source").apply {
                         setProperties(
-                            PropertyFactory.lineColor("blue"),
-                            PropertyFactory.lineWidth(5f),
+                            PropertyFactory.lineColor("#4285F4"),
+                            PropertyFactory.lineWidth(6f),
                             PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
                             PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
-                            PropertyFactory.lineDasharray(arrayOf(2f, 2f))
                         )
                     }
                     style.addLayer(blueLayer)
@@ -344,3 +448,4 @@ fun MapLibreView(
     )
 
 }
+

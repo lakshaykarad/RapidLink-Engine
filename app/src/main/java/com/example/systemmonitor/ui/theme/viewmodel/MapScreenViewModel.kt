@@ -6,17 +6,20 @@ import androidx.lifecycle.viewModelScope
 import com.example.systemmonitor.common.Resource
 import com.example.systemmonitor.data.interfaces.OsrmApi
 import com.example.systemmonitor.data.local.LocationDao
+import com.example.systemmonitor.data.local.LocationEntity
 import com.example.systemmonitor.data.model.SearchResult
 import com.example.systemmonitor.repository.SearchRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -43,7 +46,64 @@ class MapScreenViewModel @Inject constructor(
     private val _routePoints =
         MutableStateFlow<Resource<List<List<Double>>>>(Resource.Success(emptyList()))
     val routePoints = _routePoints.asStateFlow()
+    // CurrentSpeed
+    val currentSpeed = locationDao.getAllLocations().map { list->
+        if (list.isNotEmpty()){
+            calculateCurrentSpeed(list)
+        }else{
+            0f
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000),0f )
+    // Distance
+    val totalDistance = locationDao.getAllLocations().map { list->
+        calculateTotalDistance(list)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
 
+    // Total Steps
+    val stepCount = totalDistance.map { distance ->
+        (distance * 1.3).toInt() // Rough math: 1.3 steps per meter
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    private fun calculateTotalDistance(points: List<LocationEntity>): Float {
+        var distance = 0f
+        if (points.size < 2) return 0f
+
+        for (i in 0 until points.size - 1) {
+            val p1 = points[i]
+            val p2 = points[i+1]
+            val results = FloatArray(1)
+            android.location.Location.distanceBetween(
+                p1.latitude, p1.longitude,
+                p2.latitude, p2.longitude,
+                results
+            )
+            distance += results[0]
+        }
+        return distance // Returns meters
+    }
+
+    private fun calculateCurrentSpeed(points: List<LocationEntity>): Float {
+        if (points.size < 2) return 0f
+
+        val last = points.last()
+        val secondLast = points[points.size - 2]
+
+        // Distance in meters
+        val results = FloatArray(1)
+        android.location.Location.distanceBetween(
+            secondLast.latitude, secondLast.longitude,
+            last.latitude, last.longitude,
+            results
+        )
+        val distanceMeters = results[0]
+
+        // Time in seconds
+        val timeDiff = (last.timestamp - secondLast.timestamp) / 1000f
+
+        if (timeDiff <= 0) return 0f
+
+        val speedMps = distanceMeters / timeDiff
+        return speedMps * 3.6f // Convert to km/h
+    }
     // this block of code use to set the limitation of nominatim 1 per second request
     // modify the query here
     init {
