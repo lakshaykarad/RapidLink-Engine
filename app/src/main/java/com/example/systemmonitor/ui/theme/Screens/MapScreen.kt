@@ -352,7 +352,7 @@ fun MapLibreView(
             // map is not ready immediately GPU + rendering engine take time
             mapView.getMapAsync { map ->
                 // set the style of map.
-                map.setStyle("https://api.maptiler.com/maps/streets/style.json?key=urVJndTUzEBx0xaseMA6") { style ->
+                map.setStyle("https://api.maptiler.com/maps/streets/style.json?key=") { style -> // Enter Your Api Key
 
                     // Red line source for tracking
                     val source = GeoJsonSource("route-source")
