@@ -206,26 +206,7 @@ fun RapidMapScreen(
                 keyboardActions = KeyboardActions(
                     onSearch = { }
                 ),
-                colors = OutlinedTextFieldDefaults.colors(
-                    // 1. The White Box
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-
-                    // 2. The Black Border
-                    focusedBorderColor = Color.Black,
-                    unfocusedBorderColor = Color.Black,
-
-                    // 3. Ensuring text and cursors are visible on the white box
-                    cursorColor = Color.Black,
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-
-                    // 4. Polishing the icons
-                    focusedLeadingIconColor = Color.Black,
-                    unfocusedLeadingIconColor = Color.DarkGray,
-                    focusedTrailingIconColor = Color.Black,
-                    unfocusedTrailingIconColor = Color.DarkGray
-                )
+                
             )
 
             Card(
