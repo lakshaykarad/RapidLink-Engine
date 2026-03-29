@@ -1,6 +1,6 @@
 [versions]
-agp = "8.13.2"
-kotlin = "2.0.0"
+agp = "9.0.0"
+kotlin = "2.2.10"
 coreKtx = "1.17.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
@@ -8,7 +8,7 @@ espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.12.2"
 composeBom = "2024.09.00"
-ksp = "2.0.0-1.0.21"
+ksp = "2.3.2"
 hilt = "2.57.2"
 maplibre = "11.0.0"  # This is for Map
 retrofit = "2.9.0" # Retrofit

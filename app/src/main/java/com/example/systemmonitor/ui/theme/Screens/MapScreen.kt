@@ -175,7 +175,7 @@ fun RapidMapScreen(
             }
         }
     ){ paddingValues ->
-
+        // Screen Code
         Box(modifier = Modifier.padding(paddingValues)) {
             MapLibreView(
                 pathPoints = pathPoint,
@@ -188,10 +188,10 @@ fun RapidMapScreen(
                 onValueChange = { viewModel.onSearchQueryChange(it) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("Search City ") },
+                    .padding(horizontal = 4.dp, vertical = 8.dp),
+                placeholder = { Text("Search Location", color = Color.Gray) },
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp), // Modern rounded corners
+                shape = RoundedCornerShape(12.dp),
                 leadingIcon = {
                     Icon(imageVector = Icons.Default.Search, contentDescription = "Search Icon")
                 },
@@ -204,11 +204,27 @@ fun RapidMapScreen(
                 },
 
                 keyboardActions = KeyboardActions(
-                    onSearch = { /* Optional: trigger search logic on enter */ }
+                    onSearch = { }
                 ),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    // 1. The White Box
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+
+                    // 2. The Black Border
+                    focusedBorderColor = Color.Black,
+                    unfocusedBorderColor = Color.Black,
+
+                    // 3. Ensuring text and cursors are visible on the white box
+                    cursorColor = Color.Black,
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+
+                    // 4. Polishing the icons
+                    focusedLeadingIconColor = Color.Black,
+                    unfocusedLeadingIconColor = Color.DarkGray,
+                    focusedTrailingIconColor = Color.Black,
+                    unfocusedTrailingIconColor = Color.DarkGray
                 )
             )
 
@@ -284,7 +300,7 @@ fun RapidMapScreen(
                             text = "$step",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight =  FontWeight.Bold,
-                            color = Color(0xFF4CAF50) // Green color for fitness
+                            color = Color(0xFF4CAF50)
                         )
                         Text("Steps", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
                     }
@@ -306,6 +322,7 @@ fun RapidMapScreen(
                 )
             }
         }
+
     }
 }
 
@@ -315,6 +332,7 @@ fun MapLibreView(
     pathPoints: List<LocationEntity>,
     routePointsState: Resource<List<List<Double>>>
 ) {
+
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
@@ -326,8 +344,7 @@ fun MapLibreView(
         MapView(context)
     }
 
-
-    // Observering the lifecyle for mapview
+    // Observing the lifecycle for mapview
     DisposableEffect(lifecycle, mapView) {
         mapView.onCreate(Bundle()) // create the map with lifecycle observation
         val lifecycleObserver = LifecycleEventObserver { _, event ->
@@ -366,6 +383,7 @@ fun MapLibreView(
                             PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND)
                         )
                     }
+
                     style.addLayer(layer)
 
                     // blue line for navigation
@@ -410,7 +428,7 @@ fun MapLibreView(
                 map.getStyle { style ->
                     // Get the source for red line
                     if (!style.isFullyLoaded) return@getStyle
-                    if (pathPoints.isNotEmpty()) { // show the standing place if we don't find destination plase
+                    if (pathPoints.isNotEmpty()) { // show the standing place if we don't find destination place
                         val source = style.getSourceAs<GeoJsonSource>("route-source")
                         val points = pathPoints.map {
                             Point.fromLngLat(it.longitude, it.latitude)
@@ -426,7 +444,6 @@ fun MapLibreView(
                         locationSource?.setGeoJson(currentPoint)
 
                     }
-
 
                     val blueSource = style.getSourceAs<GeoJsonSource>("blue-route-source")
 

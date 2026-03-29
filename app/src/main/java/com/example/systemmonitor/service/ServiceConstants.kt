@@ -9,5 +9,4 @@ object ServiceConstants {
     const val NOTIFICATION_CHANNEL_ID = "rapid_link_tracking_id"
     const val NOTIFICATION_CHANNEL_NAME = "Tracking"
     const val NOTIFICATION_ID = 1
-
 }

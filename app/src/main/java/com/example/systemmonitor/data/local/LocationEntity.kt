@@ -5,7 +5,6 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.sql.Timestamp
 
-
 // Create table to store location details
 @Entity(tableName = "location_table")
 data class LocationEntity(

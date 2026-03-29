@@ -13,7 +13,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
@@ -37,7 +36,7 @@ class MapScreenViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
-    // search state start from empty list then modity later itself.
+    // search state start from empty list then modify later itself.
     private val _searchState =
         MutableStateFlow<Resource<List<SearchResult>>>(Resource.Success(emptyList()))
     val searchState = _searchState.asStateFlow()
@@ -172,11 +171,12 @@ class MapScreenViewModel @Inject constructor(
                     val myLocationPoint = listOf(startLon,startLat)
                     shape.add(0,myLocationPoint)
                     _routePoints.value = Resource.Success(shape)
+                    Log.d("OSRM", "Route found $shape")
                 }else{
                     _routePoints.value = Resource.Error("No route found")
                 }
             }catch (e : Exception){
-                _routePoints.value = Resource.Error("${e.message} : Somthing went wrong")
+                _routePoints.value = Resource.Error("${e.message} : Something went wrong")
                 Log.e("OSRM", "Error: ${e.message}")
             }
 
@@ -200,10 +200,9 @@ class MapScreenViewModel @Inject constructor(
     fun clearRoute(){
        viewModelScope.launch {
            _searchState.value = Resource.Success(emptyList())
-           _searchQuery.value = ""
+           _searchQuery.value = "" // clear with clean text.
            _routePoints.value = Resource.Success(emptyList())
        }
-
     }
 
 

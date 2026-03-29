@@ -36,7 +36,7 @@ object NetworkModule {
                 chain.proceed(newRequest)
             }
             .retryOnConnectionFailure(true) // retry for data
-            .connectTimeout(10, TimeUnit.SECONDS) // connectaion time 10
+            .connectTimeout(10, TimeUnit.SECONDS) // connection time 10
             .writeTimeout(10, TimeUnit.SECONDS) // write time
             .readTimeout(15, TimeUnit.SECONDS) // read time
             .callTimeout(20, TimeUnit.SECONDS ) // wait for all if not get the result throw InterruptedIOException
@@ -79,6 +79,5 @@ object NetworkModule {
     fun provideOsrmApi(@Named("Osrm") retrofit: Retrofit) : OsrmApi{
         return retrofit.create(OsrmApi::class.java)
     }
-
 
 }
