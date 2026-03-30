@@ -16,7 +16,7 @@ class SearchRepository @Inject constructor(
         return try {
             val response = api.search(query)
             if (response.isEmpty()){
-                Resource.Error("No city found with that name")
+                Resource.Error("No city found with this name")
             }else{
                 Resource.Success(response)
             }

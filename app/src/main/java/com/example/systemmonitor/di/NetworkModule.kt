@@ -60,7 +60,6 @@ object NetworkModule {
         return retrofit.create(NominatimApi::class.java)
     }
 
-
     // Retrofit for Routing Osrm
     @Provides
     @Singleton

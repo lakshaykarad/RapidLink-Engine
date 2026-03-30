@@ -4,16 +4,24 @@ import android.R
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,6 +33,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -91,31 +100,7 @@ fun RapidMapScreen(
     val speedKmph by viewModel.currentSpeed.collectAsStateWithLifecycle()  // Speed
     val step by viewModel.stepCount.collectAsStateWithLifecycle()
 
-    LaunchedEffect(searchState) {
-        if (searchState is Resource.Success) {
-            val result = searchState.data
-            if (!result.isNullOrEmpty()) {
-                val city = result[0] // first city that search
-                // Get the location of the city
-                val lat = city.lat?.toDoubleOrNull()
-                val lon = city.lon?.toDoubleOrNull()
-
-                if (lat != null && lon != null) {
-                    val location = LatLng(lat, lon)
-
-                    mapController?.animateCamera(
-                        CameraUpdateFactory.newLatLngZoom(location, 14.00)
-                    )
-                    viewModel.getRouteTo(lat, lon)
-                } else {
-                    Log.e("MapScreen", "Invalid lat/lon: lat=${city.lat}, lon=${city.lon}")
-                    return@LaunchedEffect
-                }
-
-            }
-        }
-
-    }
+    // 1. Check if the state is Success and has data
 
     LaunchedEffect(routePointsState) {
         if (routePointsState is Resource.Success) {
@@ -182,6 +167,7 @@ fun RapidMapScreen(
                 onMapReady = { map -> mapController = map },
                 routePointsState = routePointsState
             )
+
             // Search
             OutlinedTextField(
                 value = query,
@@ -227,6 +213,56 @@ fun RapidMapScreen(
                     unfocusedTrailingIconColor = Color.DarkGray
                 )
             )
+
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(top = 55.dp)
+                    .padding(vertical = 8.dp, horizontal = 4.dp)
+                    .border(2.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+            ){
+                if (searchState is Resource.Success && query.isNotEmpty()) {
+                    val resultList = (searchState as Resource.Success).data
+
+                    if (!resultList.isNullOrEmpty()) {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 250.dp) // Prevents list from covering the whole screen
+                                .padding(top = 4.dp) // Slight gap between search bar and list
+                                .background(Color.White, shape = RoundedCornerShape(8.dp))
+                        ) {
+                            items(resultList) { city ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            val lat = city.lat?.toDoubleOrNull()
+                                            val lon = city.lon?.toDoubleOrNull()
+
+                                            if (lat != null && lon != null) {
+                                                val location = LatLng(lat, lon)
+                                                mapController?.animateCamera(
+                                                    CameraUpdateFactory.newLatLngZoom(location, 14.00)
+                                                )
+                                                viewModel.getRouteTo(lat, lon)
+
+                                                // Hide the list after clicking!
+                                                viewModel.onSearchQueryChange("")
+                                            }
+                                        }
+                                        .padding(16.dp)
+                                ) {
+                                    Text(
+                                        text = city.search ?: "Unknown Location",
+                                        color = Color.Black
+                                    )
+                                }
+                                Divider(color = Color.LightGray, thickness = 1.dp)
+                            }
+                        }
+                    }
+                }
+            }
+
 
             Card(
                 modifier = Modifier
@@ -321,6 +357,8 @@ fun RapidMapScreen(
                         .padding(16.dp)
                 )
             }
+
+
         }
 
     }
@@ -369,7 +407,7 @@ fun MapLibreView(
             // map is not ready immediately GPU + rendering engine take time
             mapView.getMapAsync { map ->
                 // set the style of map.
-                map.setStyle("https://api.maptiler.com/maps/streets/style.json?key=") { style -> // Enter Your Api Key
+                map.setStyle("https://api.maptiler.com/maps/streets/style.json?key=urVJndTUzEBx0xaseMA6") { style -> // Enter Your Api Key
 
                     // Red line source for tracking
                     val source = GeoJsonSource("route-source")
