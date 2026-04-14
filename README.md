@@ -29,10 +29,6 @@ Most navigation apps rely heavily on the Google Maps SDK and constant internet c
 * **Routing:** OSRM API (Turn-by-turn Navigation).
 * *Benefit:* Unlimited scalability with zero API billing costs.
 
-### 4. ⚡ Live Sensor Dashboard
-* **Sensor Fusion:** Combines GPS signals with the hardware **Step Counter**.
-* **Real-time Stats:** Calculates Speed (km/h) and Total Distance dynamically using the Haversine formula on raw coordinates.
-
 ---
 
 ## 🛠️ Tech Stack
