@@ -59,4 +59,8 @@ The app follows a strict **Unidirectional Data Flow (UDF)**:
 
 # RapidLink Version 2.0 
 > 🚧 UPDATE: Version 2.0 is currently in active development! 🚧
-> Notice: The code in this public repository reflects V1.0. I am currently building V2.0 in a private repository to overhaul the architecture. 
+> Notice: The code in this public repository reflects V1.0. I am currently building V2.0 in a private repository to overhaul the architecture.
+
+> 🧠 **Engineering Deep Dive:** > Curious about how I am handling errors without Google Services, or how the offline tracking engine works? 
+> **[👉 Click here to read the V2.0 Engineering Details & Problem-Solving Log](./DETAILS.md)**
+
