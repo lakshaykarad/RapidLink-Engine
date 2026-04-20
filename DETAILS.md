@@ -192,7 +192,7 @@ If you only send a single coordinate pair, the OSRM server will reject the reque
 <details>
 <summary><b>🧠 4. The Core Routing Logic: Step-by-Step</b></summary>
 
-Regardless of the tech stack or programming language you are using, here is the exact logical flow you need to implement to successfully draw a navigation route on a map! 🗺️
+> Regardless of the tech stack or programming language you are using, here is the exact logical flow you need to implement to successfully draw a navigation route on a map! 🗺️
 
 <details>
 <summary><b>📦 Step 1: Study the OSRM JSON Response Format (The Data Classes)</b></summary>
