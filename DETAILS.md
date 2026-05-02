@@ -317,3 +317,183 @@ Always wrap your routing logic in proper try-catch blocks and test each of these
 </details>
 
 </details>
+
+<br></br>
+
+# 🗺️ Engineering Log 3: Drop a Pin & Get Route
+
+I wanted to add two things to my app.
+1. When user **searches a location** → camera flies there → pin drops → user clicks **Get Route**
+2. When user **long presses the map** → pin drops → user clicks **Get Route**
+
+Simple goal. Let me explain how I built it.
+
+---
+
+<details>
+<summary><b>🧠 The Main Idea: Destination State</b></summary>
+
+The most important thing I built is a **holding state** in the ViewModel called `destinationPoint`.
+
+Think of it like a sticky note. When the user picks a location (search or long press),
+I write the coordinates on the sticky note. When user taps Get Route, I read the sticky note and fetch the route.
+
+```
+destinationPoint = null          →  no pin, no button
+destinationPoint = Pair(lon,lat) →  pin on map, Get Route button visible
+```
+
+</details>
+
+---
+
+<details>
+<summary><b>📦 ViewModel — What I Added</b></summary>
+
+Added a new StateFlow to hold the destination:
+
+```kotlin
+private val _destinationPoint = MutableStateFlow<Pair<Double, Double>?>(null)
+val destinationPoint = _destinationPoint.asStateFlow()
+```
+
+Added two functions:
+
+```kotlin
+// Just saves the destination. Does NOT fetch route.
+fun setDestination(lon: Double, lat: Double) {
+    _destinationPoint.value = Pair(lon, lat)
+}
+
+// Reads saved destination and fetches the route.
+fun getRouteToDestination() {
+    val dest = _destinationPoint.value ?: return
+    getRouteTo(destinationLat = dest.second, destinationLon = dest.first)
+}
+```
+
+Also updated `clearRoute()` to wipe the pin:
+```kotlin
+_destinationPoint.value = null
+```
+
+</details>
+
+---
+
+<details>
+<summary><b>🖐️ Long Press on Map</b></summary>
+
+MapLibre has a built-in long press listener. I registered it inside the `factory` block after `onMapReady`:
+
+```kotlin
+map.addOnMapLongClickListener { latLng ->
+    onMapLongPress(latLng.longitude, latLng.latitude)
+    true
+}
+```
+
+`true` means the event is consumed and won't trigger anything else.
+
+I passed `onMapLongPress` as a **lambda parameter** into `MapLibreView` so the composable stays reusable and doesn't need to know about the ViewModel directly.
+
+</details>
+
+---
+
+<details>
+<summary><b>📍 Destination Pin on the Map</b></summary>
+
+I already had layers for the red tracking line, blue route, and blue location dot.
+I added one more — a red circle for the dropped pin.
+
+**In the `factory` block (runs once — setup):**
+```kotlin
+val destinationSource = GeoJsonSource("destination-source")
+style.addSource(destinationSource)
+style.addLayer(CircleLayer("destination-layer", "destination-source").apply {
+    setProperties(
+        PropertyFactory.circleColor("#F44336"),
+        PropertyFactory.circleRadius(10f),
+        PropertyFactory.circleStrokeColor("white"),
+        PropertyFactory.circleStrokeWidth(3f)
+    )
+})
+```
+
+**In the `update` block (runs every recompose — keeps pin fresh):**
+```kotlin
+val destinationSource = style.getSourceAs<GeoJsonSource>("destination-source")
+if (destinationPoint != null) {
+    destinationSource?.setGeoJson(Point.fromLngLat(destinationPoint.first, destinationPoint.second))
+} else {
+    destinationSource?.setGeoJson(FeatureCollection.fromFeatures(emptyList()))
+}
+```
+
+</details>
+
+---
+
+<details>
+<summary><b>🔘 Get Route Button</b></summary>
+
+Simple Compose visibility. If `destinationPoint` is not null, show the button:
+
+```kotlin
+if (destinationPoint != null) {
+    Button(onClick = { viewModel.getRouteToDestination() }) {
+        Text("Get Route")
+    }
+}
+```
+
+When user taps it → `getRouteToDestination()` reads the saved pin coordinates → calls the existing OSRM route function → blue line draws on map.
+
+</details>
+
+---
+
+<details>
+<summary><b>🐛 Bug I Hit: Search Pin Showing in Wrong Place</b></summary>
+
+Long press pin worked fine. But the search pin was appearing completely off screen.
+
+The mistake was coordinate order:
+
+```kotlin
+// ❌ Wrong
+viewModel.setDestination(lat, lon)
+
+// ✅ Correct
+viewModel.setDestination(lon, lat)
+```
+
+`setDestination` stores `Pair(first=lon, second=lat)`.
+`Point.fromLngLat()` expects `(lon, lat)`.
+
+If you pass lat as the first argument, MapLibre reads it as lon and draws the pin in a completely wrong country.
+
+**Rule I follow now:**
+```
+Android GPS     → Latitude first  (human order)
+MapLibre & OSRM → Longitude first (math / X,Y order)
+
+Always flip when going from Android GPS → Map.
+```
+
+</details>
+
+---
+
+<details>
+<summary><b>✅ Final Flow</b></summary>
+
+```
+Search tapped   →  setDestination(lon, lat)  →  pin + button appear
+Long press map  →  setDestination(lon, lat)  →  pin + button appear
+Get Route tap   →  getRouteToDestination()   →  blue route drawn
+Clear button    →  clearRoute()              →  everything wiped
+```
+
+</details>
