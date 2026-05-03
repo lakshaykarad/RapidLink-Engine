@@ -27,7 +27,7 @@ Most navigation apps rely heavily on the Google Maps SDK and constant internet c
     </td>
     <td align="center">
       <img src="app/src/main/res/drawable/Route" width="220"/>
-      <br/><sub><b>Routing</b></sub>
+      <br/><sub><b>Dropped Pin</b></sub>
     </td>
     <td align="center">
       <img src="app/src/main/res/drawable/Multiple%20Route" width="220"/>
