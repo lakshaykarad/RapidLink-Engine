@@ -18,23 +18,23 @@ Most navigation apps rely heavily on the Google Maps SDK and constant internet c
 <table>
   <tr>
     <td align="center">
-      <img src="app/src/main/res/drawable/Location%20History" width="220"/>
+      <img src="app/src/main/res/drawable/Map%20View" width="220"/>
       <br/><sub><b>Map View</b></sub>
     </td>
     <td align="center">
-      <img src="app/src/main/res/drawable/Route%20Searching.png" width="220"/>
+      <img src="app/src/main/res/drawable/Searching" width="220"/>
       <br/><sub><b>Location Search</b></sub>
     </td>
     <td align="center">
-      <img src="app/src/main/res/drawable/Multiple%20Route.png" width="220"/>
+      <img src="app/src/main/res/drawable/Route" width="220"/>
       <br/><sub><b>Routing</b></sub>
     </td>
     <td align="center">
-      <img src="app/src/main/res/drawable/Multiple%20Route.png" width="220"/>
+      <img src="app/src/main/res/drawable/Multiple%20Route" width="220"/>
       <br/><sub><b>Multiple Routes</b></sub>
     </td>
     <td align="center">
-      <img src="app/src/main/res/drawable/Location%20History.png" width="220"/>
+      <img src="app/src/main/res/drawable/Location%20History" width="220"/>
       <br/><sub><b>Location History</b></sub>
     </td>
   </tr>
