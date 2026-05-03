@@ -12,6 +12,36 @@ Most navigation apps rely heavily on the Google Maps SDK and constant internet c
 * **Tracking (Offline):** Uses a local Room Database and Foreground Services to capture the user's path ("Red Trail") 100% of the time, regardless of network status.
 * **Routing (Hybrid):** Fetches navigation paths ("Blue Line") via OSRM but caches vector tiles locally for smooth rendering.
 
+
+## 🗺️ RapidLink — *Screen Shorts*
+<div align="center">
+<table>
+  <tr>
+    <td align="center">
+      <img src="app/src/main/res/drawable/Location%20History" width="220"/>
+      <br/><sub><b>Map View</b></sub>
+    </td>
+    <td align="center">
+      <img src="app/src/main/res/drawable/Route%20Searching.png" width="220"/>
+      <br/><sub><b>Location Search</b></sub>
+    </td>
+    <td align="center">
+      <img src="app/src/main/res/drawable/Multiple%20Route.png" width="220"/>
+      <br/><sub><b>Routing</b></sub>
+    </td>
+    <td align="center">
+      <img src="app/src/main/res/drawable/Multiple%20Route.png" width="220"/>
+      <br/><sub><b>Multiple Routes</b></sub>
+    </td>
+    <td align="center">
+      <img src="app/src/main/res/drawable/Location%20History.png" width="220"/>
+      <br/><sub><b>Location History</b></sub>
+    </td>
+  </tr>
+</table>
+</div>
+
+
 ## 📱 Key Features
 
 ### 1. 🛡️ Resilient Background Tracking
